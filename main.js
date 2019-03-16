@@ -1,3 +1,48 @@
+window.onload = function () {
+  var socket = io.connect("http://24.16.255.56:8888");
+
+  socket.on("load", function (data) {
+      console.log(data.data);
+      var data = data.data;
+      for (var i = 0; i < gameEngine.entities.length; i ++) {
+         gameEngine.entities[i].x = data[i].x;
+         gameEngine.entities[i].y = data[i].y;
+         gameEngine.entities[i].it = data[i].it;
+         gameEngine.entities[i].radius = data[i].radius;
+         gameEngine.entities[i].visualRadius = data[i].visualRadius;
+         gameEngine.entities[i].colors = data[i].colors;
+         gameEngine.entities[i].die = data[i].die;
+         gameEngine.entities[i].velocity = data[i].velocity;
+      }
+  });
+
+  var text = document.getElementById("text");
+  var saveButton = document.getElementById("save");
+  var loadButton = document.getElementById("load");
+
+  saveButton.onclick = function () {
+    console.log("save");
+    text.innerHTML = "Saved."
+    var savedata = [];
+    for (var i =0; i < gameEngine.entities.length; i ++) {
+      savedata.push({x:gameEngine.entities[i].x, y: gameEngine.entities[i].y
+         , it: gameEngine.entities[i].it, radius: gameEngine.entities[i].radius
+         , visualRadius: gameEngine.entities[i].visualRadius, colors: gameEngine.entities[i].colors
+         , die: gameEngine.entities[i].die, velocity: gameEngine.entities[i].velocity});
+    }
+
+    socket.emit("save", { studentname: "Steven Huang", statename: "aState", data: savedata });
+  };
+
+  loadButton.onclick = function () {
+    console.log("load");
+    text.innerHTML = "Loaded."
+    socket.emit("load", { studentname: "Steven Huang", statename: "aState" });
+  };
+
+};
+
+
 
 // GameBoard code below
 
@@ -13,7 +58,9 @@ function Circle(game) {
     this.visualRadius = 500;
     this.colors = ["Red", "Green", "Blue", "White"];
     this.setNotIt();
-    Entity.call(this, game, this.radius + Math.random() * (700 - this.radius * 2), this.radius + Math.random() * (700 - this.radius * 2));
+    this.x = this.radius + Math.random() * (700 - this.radius * 2);
+    this.y = this.radius + Math.random() * (700 - this.radius * 2);
+    Entity.call(this, game, this.x, this.y);
 
     this.die = 0;
     this.game = game;
@@ -180,20 +227,20 @@ Circle.prototype.update = function () {
             }
         }
     }
-    if (this.game.click && !gameOver) {
-        this.game.click = false;
-        var random = Math.round(Math.random()*5);
-        var circle = new Circle(this.game);
-        if (random == 2) {
-            circle.setIt();
-            this.game.addEntity(circle);
-        } else if (random % 2) {
-            this.game.addEntity(circle);
-        } else if (random == 4) {
-            this.removeFromWorld = true;
-        }
+    // if (this.game.click && !gameOver) {
+    //     this.game.click = false;
+    //     var random = Math.round(Math.random()*5);
+    //     var circle = new Circle(this.game);
+    //     if (random == 2) {
+    //         circle.setIt();
+    //         this.game.addEntity(circle);
+    //     } else if (random % 2) {
+    //         this.game.addEntity(circle);
+    //     } else if (random == 4) {
+    //         this.removeFromWorld = true;
+    //     }
 
-    }
+    // }
     this.velocity.x -= (1 - friction) * this.game.clockTick * this.velocity.x;
     this.velocity.y -= (1 - friction) * this.game.clockTick * this.velocity.y;
 };
@@ -214,6 +261,7 @@ var friction = 1;
 var acceleration = 100000;
 var maxSpeed = 300;
 var gameOver = false;
+var gameEngine;
 
 var ASSET_MANAGER = new AssetManager();
 
@@ -227,7 +275,7 @@ ASSET_MANAGER.downloadAll(function () {
     var ctx = canvas.getContext('2d');
 
 
-    var gameEngine = new GameEngine();
+    gameEngine = new GameEngine();
     var circle = new Circle(gameEngine);
     circle.setIt();
     gameEngine.addEntity(circle);
